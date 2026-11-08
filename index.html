@@ -120,10 +120,13 @@
   .vazia { color: var(--muted); text-align: center; padding: 32px 0; font-family: system-ui, sans-serif; }
   .rodape { margin-top: 24px; text-align: right; }
   .rodape button { color: var(--muted); font-size: .8rem; }
+  main { position: relative; }
+  .som { position: absolute; top: 8px; right: 6px; width: 40px; height: 40px; padding: 0; font-size: 1.2rem; line-height: 1; }
 </style>
 </head>
 <body>
 <main>
+  <button class="som" id="som" type="button" aria-label="Som ligado" title="Ligar/desligar som">🔊</button>
   <h1>Tarefas</h1>
   <p class="resumo" id="resumo"></p>
 
@@ -300,6 +303,11 @@
     subAberto = null;
     const r = achar(e.target.closest("li").dataset.id);
     r.item.feita = e.target.checked;
+    if (r.item.feita) {
+      let nivel = -1;
+      for (let u = e.target.closest("li"); u && u !== listaEl; u = u.parentElement) if (u.tagName === "UL") nivel++;
+      tocarConclusao(nivel, r.item.filhas.length > 0);
+    }
     salvar(); desenhar();
   });
 
@@ -314,6 +322,50 @@
     salvar(); desenhar();
   });
 
+  // ---- Efeitos sonoros (gerados no próprio navegador, sem arquivos) ----
+  let somAtivo = true;
+  try { somAtivo = localStorage.getItem("tarefas-som") !== "off"; } catch (e) {}
+  let audioCtx = null;
+
+  function nota(freq, inicio, dur, tipo, vol) {
+    const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+    const t = audioCtx.currentTime + inicio;
+    o.type = tipo; o.frequency.value = freq;
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(vol, t + 0.015);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g).connect(audioCtx.destination);
+    o.start(t); o.stop(t + dur + 0.05);
+  }
+  // nivel: 0 = tarefa principal; quanto mais fundo, mais agudo.
+  // grupo: true quando a tarefa tem subtarefas (som de "missão cumprida").
+  function tocarConclusao(nivel, grupo) {
+    if (!somAtivo) return;
+    try {
+      audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+      if (audioCtx.state === "suspended") audioCtx.resume();
+      const base = 523.25 * Math.pow(2, Math.min(nivel, 4) * 2 / 12);
+      if (grupo) {
+        [1, 1.25, 1.5, 2].forEach((r, i) => nota(base * r, i * 0.09, 0.38, "triangle", 0.2));
+      } else {
+        nota(base, 0, 0.18, "sine", 0.2);
+        nota(base * 1.5, 0.08, 0.3, "sine", 0.2);
+      }
+    } catch (e) {}
+  }
+  const botaoSom = document.getElementById("som");
+  function iconeSom() {
+    botaoSom.textContent = somAtivo ? "🔊" : "🔇";
+    botaoSom.setAttribute("aria-label", somAtivo ? "Som ligado" : "Som desligado");
+  }
+  botaoSom.addEventListener("click", () => {
+    somAtivo = !somAtivo;
+    try { localStorage.setItem("tarefas-som", somAtivo ? "on" : "off"); } catch (e) {}
+    iconeSom();
+    tocarConclusao(0, false);
+  });
+  iconeSom();
+
   carregar();
   desenhar();
 
@@ -323,4 +375,5 @@
   }
 </script>
 </body>
-</html>
+  </html>
+  
