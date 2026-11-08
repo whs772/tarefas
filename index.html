@@ -339,19 +339,11 @@
   }
   // nivel: 0 = tarefa principal; quanto mais fundo, mais agudo.
   // grupo: true quando a tarefa tem subtarefas (som de "missão cumprida").
-  function tocarConclusao(nivel, grupo) {
-    if (!somAtivo) return;
-    try {
-      audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
-      if (audioCtx.state === "suspended") audioCtx.resume();
-      const base = 523.25 * Math.pow(2, Math.min(nivel, 4) * 2 / 12);
-      if (grupo) {
-        [1, 1.25, 1.5, 2].forEach((r, i) => nota(base * r, i * 0.09, 0.38, "triangle", 0.2));
-      } else {
-        nota(base, 0, 0.18, "sine", 0.2);
-        nota(base * 1.5, 0.08, 0.3, "sine", 0.2);
-      }
-    } catch (e) {}
+  const somConcluir = new Audio("concluir.mp3");
+function tocarConclusao() {
+  if (!somAtivo) return;
+  somConcluir.currentTime = 0;
+  somConcluir.play().catch(() => {});
   }
   const botaoSom = document.getElementById("som");
   function iconeSom() {
