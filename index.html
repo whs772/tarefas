@@ -8,7 +8,9 @@
 <meta name="theme-color" content="#2f6f55">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
-<style>
+    
+
+  <style>
   :root {
     --bg: #f3f5f2;
     --surface: #ffffff;
@@ -19,6 +21,8 @@
     --accent-text: #ffffff;
     --danger: #b3402f;
     --tree: #8fa89b;
+    --tom: rgba(0, 0, 0, .12);
+    --tom-forte: rgba(0, 0, 0, .22);
   }
   @media (prefers-color-scheme: dark) {
     :root {
@@ -32,6 +36,8 @@
       --accent-text: #0f1a14;
       --danger: #e0816f;
       --tree: #4f6a5c;
+      --tom: rgba(0, 0, 0, .3);
+      --tom-forte: rgba(0, 0, 0, .45);
     }
   }
   * { box-sizing: border-box; }
@@ -105,13 +111,36 @@
     border-radius: 8px;
     padding: 3px 8px;
   }
-  .linha input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--accent); flex: none; }
+  .linha input[type="checkbox"] {
+    appearance: none; -webkit-appearance: none;
+    width: 20px; height: 20px; margin: 0; flex: none;
+    display: inline-grid; place-content: center; cursor: pointer;
+    background: var(--tom);             /* um tom mais escuro que a linha onde está */
+    border: none;
+    border-radius: 6px;
+  }
+  .linha input[type="checkbox"]::before {
+    content: ""; width: 12px; height: 12px; background: var(--text);
+    clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%);
+    transform: scale(0); transition: transform .1s;
+  }
+  .linha input[type="checkbox"]:checked::before { transform: scale(1); }
+  .linha input[type="checkbox"]:disabled { cursor: not-allowed; }
   .texto { flex: 1; word-break: break-word; }
   .feita > .linha .texto { text-decoration: line-through; color: var(--muted); }
-  .acoes { display: flex; gap: 4px; flex: none; }
-  .acoes button { padding: 2px 8px; font-size: .85rem; }
-  .acoes .del { color: var(--danger); }
-  .acoes button[data-acao="sub"], form.sub button { font-size: 1.5rem; line-height: 1; min-width: 40px; height: 30px; padding: 0 10px; }
+  .acoes { display: flex; gap: 6px; flex: none; }
+  /* Botões + e ×: mesmo tamanho, flat, sem fundo próprio (herdam o da linha), só contorno */
+  .acoes button, form.sub button, form.sub button.primario {
+    width: 30px; height: 30px; padding: 0; flex: none;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 1.4rem; font-weight: 400; line-height: 1;
+    color: var(--text);
+    background: var(--tom);
+    border: none;
+    border-radius: 8px;
+    box-shadow: none;
+  }
+  .acoes button:hover, form.sub button:hover { background: var(--tom-forte); }
   .toggle { border: none; background: none; padding: 0; color: var(--muted); width: 30px; height: 28px; font-size: 1.5rem; line-height: 1; flex: none; }
   .toggle:hover { color: var(--text); }
   input[type="checkbox"]:disabled { opacity: .45; cursor: not-allowed; }
@@ -123,6 +152,8 @@
   main { position: relative; }
   .som { position: absolute; top: 8px; right: 6px; width: 40px; height: 40px; padding: 0; font-size: 1.2rem; line-height: 1; }
 </style>
+  
+  
 </head>
 <body>
 <main>
