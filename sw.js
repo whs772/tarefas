@@ -1,6 +1,6 @@
 // Service worker: guarda os arquivos para o app abrir mesmo offline.
 // Ao alterar qualquer arquivo, mude a versão abaixo para forçar a atualização.
-const VERSAO = "tarefas-v8";
+const VERSAO = "tarefas-v10";
 const ARQUIVOS = ["./", "./index.html", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png"];
 
 self.addEventListener("install", e => {
@@ -19,3 +19,4 @@ self.addEventListener("fetch", e => {
   if (e.request.method !== "GET") return;
   e.respondWith(caches.match(e.request).then(r => r || fetch(e.request)));
 });
+    
