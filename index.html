@@ -150,6 +150,24 @@
   main { position: relative; }
   .som { position: absolute; top: 8px; right: 6px; width: 40px; height: 40px; padding: 0; font-size: 1.2rem; line-height: 1; }
   .acoes button svg, form.sub button svg { width: 18px; height: 18px; display: block; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+  /* Seletor de prazo */
+  select {
+    font: inherit; font-size: .95rem; color: var(--text);
+    padding: 10px 8px; cursor: pointer;
+    background: var(--surface); border: 1px solid var(--line); border-radius: 8px;
+  }
+  form.nova { flex-wrap: wrap; }
+  form.nova input[type="text"] { flex: 1 1 160px; }
+  form.sub { align-items: center; }
+  form.sub input[type="text"] { flex: 1 1 100px; }
+  form.sub select { font-size: .85rem; padding: 6px 6px; height: 30px; background: var(--tom); border: none; }
+  .prazo {
+    display: inline-block; margin-left: 8px; padding: 0 8px;
+    font-size: .75rem; line-height: 1.6; border-radius: 999px; white-space: nowrap;
+    background: var(--tom); color: var(--text);
+  }
+  .prazo.vencida { background: var(--danger); color: #fff; font-weight: 600; }
+  @media (prefers-color-scheme: dark) { .prazo.vencida { color: #2a0d07; } }
 </style>
 </head>
 <body>
@@ -160,6 +178,7 @@
 
   <form class="nova" id="formNova">
     <input type="text" id="inputNova" placeholder="Nova tarefa" aria-label="Nova tarefa" autocomplete="off">
+    <select id="selectNova"></select>
     <button class="primario" type="submit">Adicionar</button>
   </form>
 
@@ -181,7 +200,7 @@
     try { localStorage.setItem(CHAVE, JSON.stringify(tarefas)); } catch (e) {}
   }
   const novoId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
-  const criar = texto => ({ id: novoId(), texto, feita: false, aberta: true, filhas: [] });
+  const criar = (texto, expira) => ({ id: novoId(), texto, feita: false, aberta: true, expira: expira || null, filhas: [] });
 
   // Busca uma tarefa e a lista que a contém, em qualquer nível
   function achar(id, lista = tarefas) {
@@ -218,6 +237,43 @@
     return e;
   }
 
+  // ---- Prazos de expiração ----
+  const PRAZOS = [["1d", "1 dia"], ["1s", "1 semana"], ["1m", "1 mês"], ["1a", "1 ano"]];
+
+  function preencherSelect(sel) {
+    PRAZOS.forEach(([v, t]) => sel.append(el("option", { value: v, textContent: t })));
+    sel.title = "Prazo de expiração";
+    sel.setAttribute("aria-label", "Prazo de expiração");
+  }
+  function calcExpira(v) {
+    if (!v) return null;
+    const d = new Date();
+    if (v === "1d") d.setDate(d.getDate() + 1);
+    if (v === "1s") d.setDate(d.getDate() + 7);
+    if (v === "1m") d.setMonth(d.getMonth() + 1);
+    if (v === "1a") d.setFullYear(d.getFullYear() + 1);
+    return d.getTime();
+  }
+  function textoPrazo(expira) {
+    const ms = expira - Date.now();
+    if (ms <= 0) return { txt: "Expirada", vencida: true };
+    const h = Math.ceil(ms / 3600000);
+    if (h < 24) return { txt: h + "h" };
+    const d = Math.ceil(ms / 86400000);
+    if (d < 7) return { txt: d + "d" };
+    if (d < 28) return { txt: Math.ceil(d / 7) + "s" };
+    if (d <= 330) return { txt: Math.ceil(d / 30) + "m" };
+    return { txt: Math.ceil(d / 365) + "a" };
+  }
+  function atualizarPrazos() {
+    document.querySelectorAll(".prazo").forEach(b => {
+      const { txt, vencida } = textoPrazo(+b.dataset.expira);
+      b.textContent = txt;
+      b.classList.toggle("vencida", !!vencida);
+      b.title = "Expira em " + new Date(+b.dataset.expira).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
+    });
+  }
+
   // Ícones desenhados em SVG para + e × terem exatamente o mesmo tamanho
   const ICONE_MAIS = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>';
   const ICONE_X = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>';
@@ -245,6 +301,11 @@
       check.dataset.acao = "check";
 
       const texto = el("span", { className: "texto", textContent: t.texto });
+      if (t.expira && !t.feita) {
+        const b = el("span", { className: "prazo" });
+        b.dataset.expira = t.expira;
+        texto.append(b);
+      }
 
       const add = el("button", { type: "button", innerHTML: ICONE_MAIS, title: "Adicionar subtarefa", ariaLabel: "Adicionar subtarefa" });
       add.dataset.acao = "sub";
@@ -257,7 +318,8 @@
         const f = el("form", { className: "sub" });
         f.dataset.acao = "enviarSub";
         const inp = el("input", { type: "text", placeholder: "Nova subtarefa", autocomplete: "off" });
-        f.append(inp, el("button", { type: "submit", className: "primario", innerHTML: ICONE_MAIS, title: "Adicionar subtarefa", ariaLabel: "Adicionar subtarefa" }));
+        const sel = el("select"); preencherSelect(sel);
+        f.append(inp, sel, el("button", { type: "submit", className: "primario", innerHTML: ICONE_MAIS, title: "Adicionar subtarefa", ariaLabel: "Adicionar subtarefa" }));
         li.append(f);
         setTimeout(() => inp.focus(), 0);
       }
@@ -277,6 +339,7 @@
       raiz.append(desenharLista(tarefas));
     }
     const { total, feitas } = contar(tarefas);
+    atualizarPrazos();
     document.getElementById("resumo").textContent = total ? `${feitas} de ${total} concluídas` : "";
   }
 
@@ -286,7 +349,9 @@
     const inp = document.getElementById("inputNova");
     const texto = inp.value.trim();
     if (!texto) return;
-    tarefas.push(criar(texto));
+    const selN = document.getElementById("selectNova");
+    tarefas.push(criar(texto, calcExpira(selN.value)));
+    selN.value = PRAZOS[0][0];
     inp.value = "";
     salvar(); desenhar();
   });
@@ -301,7 +366,7 @@
     const texto = form.querySelector("input").value.trim();
     if (!texto) return;
     const r = achar(id);
-    r.item.filhas.push(criar(texto));
+    r.item.filhas.push(criar(texto, calcExpira(form.querySelector("select").value)));
     r.item.aberta = true;
     subAberto = null;
     salvar(); desenhar();
@@ -398,6 +463,8 @@
   });
   iconeSom();
 
+  preencherSelect(document.getElementById("selectNova"));
+  setInterval(atualizarPrazos, 60000);
   carregar();
   desenhar();
 
@@ -407,5 +474,5 @@
   }
 </script>
 </body>
-</html>
-    
+  </html>
+                              
