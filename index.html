@@ -8,9 +8,7 @@
 <meta name="theme-color" content="#2f6f55">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
-
-
-    <style>
+<style>
   :root {
     --bg: #f3f5f2;
     --surface: #ffffff;
@@ -152,10 +150,7 @@
   main { position: relative; }
   .som { position: absolute; top: 8px; right: 6px; width: 40px; height: 40px; padding: 0; font-size: 1.2rem; line-height: 1; }
   .acoes button svg, form.sub button svg { width: 18px; height: 18px; display: block; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
-
 </style>
-  
-  
 </head>
 <body>
 <main>
@@ -223,6 +218,10 @@
     return e;
   }
 
+  // Ícones desenhados em SVG para + e × terem exatamente o mesmo tamanho
+  const ICONE_MAIS = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>';
+  const ICONE_X = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+
   function desenharLista(lista, nivel = 0) {
     const ul = el("ul");
     for (const t of lista) {
@@ -247,9 +246,9 @@
 
       const texto = el("span", { className: "texto", textContent: t.texto });
 
-      const add = el("button", { type: "button", textContent: "+", title: "Adicionar subtarefa", ariaLabel: "Adicionar subtarefa" });
+      const add = el("button", { type: "button", innerHTML: ICONE_MAIS, title: "Adicionar subtarefa", ariaLabel: "Adicionar subtarefa" });
       add.dataset.acao = "sub";
-      const del = el("button", { type: "button", className: "del", textContent: "✕", title: "Excluir", ariaLabel: "Excluir" });
+      const del = el("button", { type: "button", className: "del", innerHTML: ICONE_X, title: "Excluir", ariaLabel: "Excluir" });
       del.dataset.acao = "del";
 
       li.append(el("div", { className: "linha nivel-" + Math.min(nivel, 4) }, toggle, check, texto, el("div", { className: "acoes" }, add, del)));
@@ -258,7 +257,7 @@
         const f = el("form", { className: "sub" });
         f.dataset.acao = "enviarSub";
         const inp = el("input", { type: "text", placeholder: "Nova subtarefa", autocomplete: "off" });
-        f.append(inp, el("button", { type: "submit", className: "primario", textContent: "+", title: "Adicionar subtarefa", ariaLabel: "Adicionar subtarefa" }));
+        f.append(inp, el("button", { type: "submit", className: "primario", innerHTML: ICONE_MAIS, title: "Adicionar subtarefa", ariaLabel: "Adicionar subtarefa" }));
         li.append(f);
         setTimeout(() => inp.focus(), 0);
       }
@@ -372,11 +371,19 @@
   }
   // nivel: 0 = tarefa principal; quanto mais fundo, mais agudo.
   // grupo: true quando a tarefa tem subtarefas (som de "missão cumprida").
-  const somConcluir = new Audio("concluir3.mp3");
-function tocarConclusao() {
-  if (!somAtivo) return;
-  somConcluir.currentTime = 0;
-  somConcluir.play().catch(() => {});
+  function tocarConclusao(nivel, grupo) {
+    if (!somAtivo) return;
+    try {
+      audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+      if (audioCtx.state === "suspended") audioCtx.resume();
+      const base = 523.25 * Math.pow(2, Math.min(nivel, 4) * 2 / 12);
+      if (grupo) {
+        [1, 1.25, 1.5, 2].forEach((r, i) => nota(base * r, i * 0.09, 0.38, "triangle", 0.2));
+      } else {
+        nota(base, 0, 0.18, "sine", 0.2);
+        nota(base * 1.5, 0.08, 0.3, "sine", 0.2);
+      }
+    } catch (e) {}
   }
   const botaoSom = document.getElementById("som");
   function iconeSom() {
@@ -400,5 +407,5 @@ function tocarConclusao() {
   }
 </script>
 </body>
-  </html>
-  
+</html>
+    
